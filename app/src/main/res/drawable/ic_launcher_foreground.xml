@@ -6,11 +6,11 @@
     android:viewportHeight="108">
     <!-- corpo del tamburo -->
     <path
-        android:fillColor="#FFFFE3EC"
+        android:fillColor="#FFD9D9D9"
         android:pathData="M32,56 L32,72 Q32,80 54,80 Q76,80 76,72 L76,56 Z" />
     <!-- tiranti -->
     <path
-        android:strokeColor="#FF22D3B8"
+        android:strokeColor="#FFE8A33D"
         android:strokeWidth="3"
         android:strokeLineCap="round"
         android:pathData="M34,62 L44,76 L54,62 L64,76 L74,62" />
@@ -20,12 +20,12 @@
         android:pathData="M32,56 Q32,46 54,46 Q76,46 76,56 Q76,66 54,66 Q32,66 32,56 Z" />
     <!-- bacchette -->
     <path
-        android:strokeColor="#FFFFD23F"
+        android:strokeColor="#FFE8A33D"
         android:strokeWidth="5"
         android:strokeLineCap="round"
         android:pathData="M38,24 L62,52" />
     <path
-        android:strokeColor="#FFFFD23F"
+        android:strokeColor="#FFE8A33D"
         android:strokeWidth="5"
         android:strokeLineCap="round"
         android:pathData="M70,24 L46,52" />

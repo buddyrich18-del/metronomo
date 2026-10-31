@@ -21,7 +21,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -31,26 +30,26 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val Bg = Color(0xFF0E1230)
-private val Panel = Color(0xFF1A2050)
-private val Orange = Color(0xFFFF8A3D)
-private val Pink = Color(0xFFFF4D8D)
-private val Teal = Color(0xFF22D3B8)
-private val Yellow = Color(0xFFFFD23F)
-private val Green = Color(0xFF22C55E)
-private val Red = Color(0xFFEF4444)
-private val Violet = Color(0xFF8B5CF6)
-private val Blue = Color(0xFF3B82F6)
-private val stripes = listOf(Pink, Orange, Yellow, Green, Teal, Blue, Violet)
+private val Bg = Color(0xFF121212)
+private val Panel = Color(0xFF1E1E1E)
+private val Orange = Color(0xFFE8A33D)
+private val Pink = Orange
+private val Teal = Color(0xFFB8B8B8)
+private val Yellow = Orange
+private val Green = Color(0xFF3F8F5B)
+private val Red = Color(0xFFC0504D)
+private val Violet = Color(0xFF3A3A3A)
+private val Blue = Orange
+private val stripes = listOf(Orange)
 
 private val Scheme = darkColorScheme(
     primary = Orange, onPrimary = Color.Black,
     secondary = Teal, onSecondary = Color.Black,
     tertiary = Pink,
     background = Bg, surface = Bg, onSurface = Color.White,
-    surfaceVariant = Panel, onSurfaceVariant = Color(0xFFC9CEF2),
-    primaryContainer = Color(0xFF4A2F7A), onPrimaryContainer = Color.White,
-    secondaryContainer = Color(0xFF14504F), onSecondaryContainer = Color.White
+    surfaceVariant = Panel, onSurfaceVariant = Color(0xFFBBBBBB),
+    primaryContainer = Color(0xFF3A3326), onPrimaryContainer = Color.White,
+    secondaryContainer = Color(0xFF3A3A3A), onSecondaryContainer = Color.White
 )
 
 class MainActivity : ComponentActivity() {
@@ -158,7 +157,7 @@ private fun MainScreen(
                                 when {
                                     i == beat && i == 0 -> Pink
                                     i == beat -> Teal
-                                    else -> Color(0xFF3A4180)
+                                    else -> Color(0xFF3A3A3A)
                                 }
                             )
                         )
@@ -168,12 +167,12 @@ private fun MainScreen(
             item {
                 Box(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp))
-                        .background(Brush.horizontalGradient(listOf(Violet, Pink, Orange)))
+                        .background(Panel)
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("$bpm", fontSize = 88.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                        Text("$bpm", fontSize = 88.sp, fontWeight = FontWeight.ExtraBold, color = Orange)
                         Text("BPM", color = Color.White.copy(alpha = 0.85f), fontWeight = FontWeight.SemiBold)
                     }
                 }
@@ -184,7 +183,7 @@ private fun MainScreen(
                         Button(
                             onClick = { setBpm(bpm + d) },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (d < 0) Pink else Teal, contentColor = Color.Black
+                                containerColor = Color(0xFF2E2E2E), contentColor = Color.White
                             )
                         ) { Text(if (d > 0) "+$d" else "$d", fontWeight = FontWeight.Bold) }
                     }
@@ -218,7 +217,7 @@ private fun MainScreen(
             }
             if (showSettings) {
                 item {
-                    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF2A2060))) {
+                    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF262626))) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text("Dimensione testo  ${(settings.fontScale * 100).toInt()}%", color = Yellow, fontWeight = FontWeight.SemiBold)
                             Slider(
