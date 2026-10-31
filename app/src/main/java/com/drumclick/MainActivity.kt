@@ -75,7 +75,8 @@ fun DrumClickApp(engine: Metronome, beatState: MutableIntState) {
     val dens = LocalDensity.current
     MaterialTheme(colorScheme = Scheme) {
         CompositionLocalProvider(
-            LocalDensity provides Density(dens.density, dens.fontScale * settings.fontScale)
+            LocalDensity provides Density(dens.density, dens.fontScale * settings.fontScale),
+            LocalStr provides resolveStr(settings.lang)
         ) {
             Surface(Modifier.fillMaxSize(), color = Bg) {
                 MainScreen(engine, beatState, settings) {
@@ -104,6 +105,7 @@ private fun MainScreen(
     onSettings: (Settings) -> Unit
 ) {
     val ctx = LocalContext.current
+    val S = LocalStr.current
     var bpm by remember { mutableIntStateOf(120) }
     var beats by remember { mutableIntStateOf(4) }
     var sub by remember { mutableIntStateOf(1) }
@@ -201,13 +203,13 @@ private fun MainScreen(
                 Card(colors = CardDefaults.cardColors(containerColor = Panel)) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("Battiti", color = Teal, fontWeight = FontWeight.SemiBold)
+                            Text(S.beats, color = Teal, fontWeight = FontWeight.SemiBold)
                             OutlinedButton(onClick = { if (beats > 1) beats-- }) { Text("−") }
                             Text("$beats", fontWeight = FontWeight.Bold, fontSize = 20.sp)
                             OutlinedButton(onClick = { if (beats < 12) beats++ }) { Text("+") }
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Suddiv.", color = Orange, fontWeight = FontWeight.SemiBold)
+                            Text(S.subdiv, color = Orange, fontWeight = FontWeight.SemiBold)
                             listOf(1, 2, 3, 4).forEach { s ->
                                 FilterChip(selected = sub == s, onClick = { sub = s }, label = { Text("÷$s") })
                             }
@@ -219,25 +221,40 @@ private fun MainScreen(
                 item {
                     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF262626))) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Dimensione testo  ${(settings.fontScale * 100).toInt()}%", color = Yellow, fontWeight = FontWeight.SemiBold)
+                            Text("${S.textSize}  ${(settings.fontScale * 100).toInt()}%", color = Yellow, fontWeight = FontWeight.SemiBold)
                             Slider(
                                 value = settings.fontScale,
                                 onValueChange = { onSettings(settings.copy(fontScale = it)) },
                                 valueRange = 0.8f..1.6f
                             )
-                            Text("Volume  ${(settings.volume * 100).toInt()}%", color = Yellow, fontWeight = FontWeight.SemiBold)
+                            Text("${S.volume}  ${(settings.volume * 100).toInt()}%", color = Yellow, fontWeight = FontWeight.SemiBold)
                             Slider(
                                 value = settings.volume,
                                 onValueChange = { onSettings(settings.copy(volume = it)) },
                                 valueRange = 0f..1f
                             )
-                            Text("Suono del click", color = Yellow, fontWeight = FontWeight.SemiBold)
+                            Text(S.clickSound, color = Yellow, fontWeight = FontWeight.SemiBold)
                             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Metronome.CLICK_NAMES.forEachIndexed { i, n ->
+                                S.clicks.forEachIndexed { i, n ->
                                     FilterChip(
                                         selected = settings.click == i,
                                         onClick = { onSettings(settings.copy(click = i)) },
                                         label = { Text(n) }
+                                    )
+                                }
+                            }
+                            Text(S.language, color = Yellow, fontWeight = FontWeight.SemiBold)
+                            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                FilterChip(
+                                    selected = settings.lang == -1,
+                                    onClick = { onSettings(settings.copy(lang = -1)) },
+                                    label = { Text("Auto") }
+                                )
+                                LANGS.forEachIndexed { i, l ->
+                                    FilterChip(
+                                        selected = settings.lang == i,
+                                        onClick = { onSettings(settings.copy(lang = i)) },
+                                        label = { Text(l.label) }
                                     )
                                 }
                             }
@@ -247,14 +264,14 @@ private fun MainScreen(
             }
             item {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Setlist", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Teal, modifier = Modifier.weight(1f))
+                    Text(S.setlist, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Teal, modifier = Modifier.weight(1f))
                     if (current in songs.indices) {
                         TextButton(onClick = {
                             songs[current] = songs[current].copy(bpm = bpm, beats = beats, sub = sub)
                             persist()
-                        }) { Text("Aggiorna") }
+                        }) { Text(S.update) }
                     }
-                    TextButton(onClick = { editIndex = -1 }) { Text("+ Brano") }
+                    TextButton(onClick = { editIndex = -1 }) { Text(S.addSong) }
                 }
             }
             itemsIndexed(songs) { i, s ->
@@ -297,7 +314,7 @@ private fun MainScreen(
                                 else -> current
                             }
                             persist()
-                        }) { Icon(Icons.Default.Delete, contentDescription = "Elimina", tint = Red) }
+                        }) { Icon(Icons.Default.Delete, contentDescription = S.delete, tint = Red) }
                     }
                 }
             }
@@ -345,12 +362,12 @@ private fun MainScreen(
     editIndex?.let { idx ->
         val isNew = idx < 0
         SongDialog(
-            title = if (isNew) "Nuovo brano" else "Modifica brano",
+            title = if (isNew) S.newSong else S.editSong,
             initial = if (isNew) Song("", bpm, beats, sub) else songs[idx],
-            confirm = if (isNew) "Aggiungi" else "Salva",
+            confirm = if (isNew) S.add else S.save,
             onConfirm = { s ->
                 if (isNew) {
-                    songs.add(s.copy(name = s.name.ifBlank { "Brano ${songs.size + 1}" }))
+                    songs.add(s.copy(name = s.name.ifBlank { "${S.songDefault} ${songs.size + 1}" }))
                 } else {
                     songs[idx] = s.copy(name = s.name.ifBlank { songs[idx].name })
                     if (idx == current) { bpm = s.bpm; beats = s.beats; sub = s.sub }
@@ -371,6 +388,7 @@ private fun SongDialog(
     onConfirm: (Song) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val S = LocalStr.current
     var name by remember { mutableStateOf(initial.name) }
     var bpmText by remember { mutableStateOf(initial.bpm.toString()) }
     var beats by remember { mutableIntStateOf(initial.beats) }
@@ -380,20 +398,20 @@ private fun SongDialog(
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text("Titolo") }, singleLine = true)
+                OutlinedTextField(name, { name = it }, label = { Text(S.titleField) }, singleLine = true)
                 OutlinedTextField(
                     bpmText, { bpmText = it.filter(Char::isDigit).take(3) },
-                    label = { Text("BPM (30–300)") }, singleLine = true,
+                    label = { Text(S.bpmField) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Battiti")
+                    Text(S.beats)
                     OutlinedButton(onClick = { if (beats > 1) beats-- }) { Text("−") }
                     Text("$beats", fontWeight = FontWeight.Bold)
                     OutlinedButton(onClick = { if (beats < 12) beats++ }) { Text("+") }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Suddiv.")
+                    Text(S.subdiv)
                     listOf(1, 2, 3, 4).forEach { s ->
                         FilterChip(selected = sub == s, onClick = { sub = s }, label = { Text("÷$s") })
                     }
@@ -406,6 +424,6 @@ private fun SongDialog(
                 onConfirm(Song(name, v, beats, sub))
             }) { Text(confirm) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annulla") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(S.cancel) } }
     )
 }

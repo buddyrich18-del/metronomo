@@ -6,7 +6,7 @@ import org.json.JSONObject
 
 data class Song(val name: String, val bpm: Int, val beats: Int = 4, val sub: Int = 1)
 
-data class Settings(val fontScale: Float = 1f, val volume: Float = 0.8f, val click: Int = 0)
+data class Settings(val fontScale: Float = 1f, val volume: Float = 0.8f, val click: Int = 0, val lang: Int = -1)
 
 object SetlistStore {
     private const val PREFS = "drumclick"
@@ -46,12 +46,13 @@ object SettingsStore {
         return Settings(
             fontScale = p.getFloat("font", 1f),
             volume = p.getFloat("volume", 0.8f),
-            click = p.getInt("click", 0)
+            click = p.getInt("click", 0),
+            lang = p.getInt("lang", -1)
         )
     }
 
     fun save(ctx: Context, s: Settings) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putFloat("font", s.fontScale).putFloat("volume", s.volume).putInt("click", s.click).apply()
+            .putFloat("font", s.fontScale).putFloat("volume", s.volume).putInt("click", s.click).putInt("lang", s.lang).apply()
     }
 }
