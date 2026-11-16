@@ -1,5 +1,5 @@
 # DrumClick
 
-Android metronome for drummers: 30–300 BPM, 1–12 beats with accent, ÷1–4 subdivisions, tap tempo, and a setlist with a BPM for each song.
+Metronomo Android per batteristi: BPM 30–300, battiti 1–12 con accento, suddivisioni ÷1–4, tap tempo e setlist con BPM per brano.
 
-APK: push to GitHub → Actions tab → latest run → DrumClick-debug artifact.
+APK: push su GitHub → scheda **Actions** → ultimo run → artifact `DrumClick-debug`.

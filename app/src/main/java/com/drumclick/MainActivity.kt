@@ -1,5 +1,8 @@
 package com.drumclick
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -88,10 +91,19 @@ fun DrumClickApp(engine: Metronome, beatState: MutableIntState) {
     }
 }
 
+private fun openVideo(ctx: Context, s: Song) {
+    val url = s.url.ifBlank { "https://www.youtube.com/results?search_query=" + Uri.encode(s.name) }
+    try {
+        ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    } catch (e: Exception) {
+    }
+}
+
 @Composable
-private fun Act(label: String, onClick: () -> Unit) {
+private fun Act(label: String, color: Color = Color.Unspecified, onClick: () -> Unit) {
     Text(
         label,
+        color = color,
         fontSize = 18.sp,
         modifier = Modifier.clip(CircleShape).clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 10.dp)
     )
@@ -114,7 +126,11 @@ private fun MainScreen(
     var current by remember { mutableIntStateOf(-1) }
     var editIndex by remember { mutableStateOf<Int?>(null) } // -1 = nuovo brano
     var showSettings by remember { mutableStateOf(false) }
-    val songs = remember { mutableStateListOf<Song>().apply { addAll(SetlistStore.load(ctx)) } }
+    val lists = remember { mutableStateListOf<SetList>().apply { addAll(SetlistStore.loadAll(ctx)) } }
+    var listIdx by remember { mutableIntStateOf(0) }
+    val songs = remember { mutableStateListOf<Song>().apply { addAll(lists[0].songs) } }
+    var showNewList by remember { mutableStateOf(false) }
+    var confirmDelList by remember { mutableStateOf(false) }
     val taps = remember { mutableListOf<Long>() }
 
     SideEffect {
@@ -125,7 +141,17 @@ private fun MainScreen(
         engine.clickType = settings.click
     }
 
-    fun persist() = SetlistStore.save(ctx, songs)
+    fun persist() {
+        lists[listIdx] = lists[listIdx].copy(songs = songs.toList())
+        SetlistStore.saveAll(ctx, lists)
+    }
+    fun switchList(i: Int) {
+        persist()
+        listIdx = i
+        songs.clear()
+        songs.addAll(lists[i].songs)
+        current = -1
+    }
     fun setBpm(v: Int) { bpm = v.coerceIn(30, 300) }
     fun select(i: Int) {
         current = i
@@ -274,6 +300,23 @@ private fun MainScreen(
                     TextButton(onClick = { editIndex = -1 }) { Text(S.addSong) }
                 }
             }
+            item {
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    lists.forEachIndexed { i, l ->
+                        FilterChip(
+                            selected = i == listIdx,
+                            onClick = { if (i != listIdx) switchList(i) },
+                            label = { Text(l.name) }
+                        )
+                    }
+                    FilterChip(selected = false, onClick = { showNewList = true }, label = { Text("+") })
+                    if (lists.size > 1) Act("✕", Red) { confirmDelList = true }
+                }
+            }
             itemsIndexed(songs) { i, s ->
                 Card(
                     Modifier.fillMaxWidth().clickable { select(i) },
@@ -291,6 +334,7 @@ private fun MainScreen(
                                 color = stripes[i % stripes.size]
                             )
                         }
+                        Act("▶", Red) { openVideo(ctx, s) }
                         Act("✎") { editIndex = i }
                         Act("▲") {
                             if (i > 0) {
@@ -359,6 +403,46 @@ private fun MainScreen(
         }
     }
 
+    if (showNewList) {
+        var n by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showNewList = false },
+            title = { Text(S.newList) },
+            text = { OutlinedTextField(n, { n = it }, label = { Text(S.listName) }, singleLine = true) },
+            confirmButton = {
+                TextButton(onClick = {
+                    persist()
+                    lists.add(SetList(n.ifBlank { "Setlist ${lists.size + 1}" }, emptyList()))
+                    listIdx = lists.lastIndex
+                    songs.clear()
+                    current = -1
+                    SetlistStore.saveAll(ctx, lists)
+                    showNewList = false
+                }) { Text(S.add) }
+            },
+            dismissButton = { TextButton(onClick = { showNewList = false }) { Text(S.cancel) } }
+        )
+    }
+    if (confirmDelList) {
+        AlertDialog(
+            onDismissRequest = { confirmDelList = false },
+            title = { Text("${S.delete}: ${lists[listIdx].name}?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val d = listIdx
+                    lists.removeAt(d)
+                    listIdx = (d - 1).coerceAtLeast(0)
+                    songs.clear()
+                    songs.addAll(lists[listIdx].songs)
+                    current = -1
+                    SetlistStore.saveAll(ctx, lists)
+                    confirmDelList = false
+                }) { Text(S.delete, color = Red) }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelList = false }) { Text(S.cancel) } }
+        )
+    }
+
     editIndex?.let { idx ->
         val isNew = idx < 0
         SongDialog(
@@ -391,6 +475,7 @@ private fun SongDialog(
     val S = LocalStr.current
     var name by remember { mutableStateOf(initial.name) }
     var bpmText by remember { mutableStateOf(initial.bpm.toString()) }
+    var url by remember { mutableStateOf(initial.url) }
     var beats by remember { mutableIntStateOf(initial.beats) }
     var sub by remember { mutableIntStateOf(initial.sub) }
     AlertDialog(
@@ -404,6 +489,7 @@ private fun SongDialog(
                     label = { Text(S.bpmField) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
+                OutlinedTextField(url, { url = it.trim() }, label = { Text(S.link) }, singleLine = true)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(S.beats)
                     OutlinedButton(onClick = { if (beats > 1) beats-- }) { Text("−") }
@@ -421,7 +507,7 @@ private fun SongDialog(
         confirmButton = {
             TextButton(onClick = {
                 val v = bpmText.toIntOrNull()?.coerceIn(30, 300) ?: initial.bpm
-                onConfirm(Song(name, v, beats, sub))
+                onConfirm(Song(name, v, beats, sub, url))
             }) { Text(confirm) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(S.cancel) } }
