@@ -1,9 +1,12 @@
 package com.drumclick
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -91,11 +94,14 @@ fun DrumClickApp(engine: Metronome, beatState: MutableIntState) {
     }
 }
 
-private fun openVideo(ctx: Context, s: Song) {
+private fun openVideo(ctx: Context, s: Song, errorMsg: String) {
     val url = s.url.ifBlank { "https://www.youtube.com/results?search_query=" + Uri.encode(s.name) }
     try {
-        ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     } catch (e: Exception) {
+        val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        cm.setPrimaryClip(ClipData.newPlainText("YouTube", url))
+        Toast.makeText(ctx, errorMsg, Toast.LENGTH_LONG).show()
     }
 }
 
@@ -334,7 +340,7 @@ private fun MainScreen(
                                 color = stripes[i % stripes.size]
                             )
                         }
-                        Act("▶", Red) { openVideo(ctx, s) }
+                        Act("▶", Red) { openVideo(ctx, s, S.noBrowser) }
                         Act("✎") { editIndex = i }
                         Act("▲") {
                             if (i > 0) {
