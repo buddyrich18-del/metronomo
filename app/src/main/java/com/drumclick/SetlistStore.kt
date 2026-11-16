@@ -8,7 +8,7 @@ data class Song(val name: String, val bpm: Int, val beats: Int = 4, val sub: Int
 
 data class SetList(val name: String, val songs: List<Song>)
 
-data class Settings(val fontScale: Float = 1f, val volume: Float = 0.8f, val click: Int = 0, val lang: Int = -1)
+data class Settings(val fontScale: Float = 1f, val volume: Float = 0.8f, val click: Int = 0, val lang: Int = -1, val ytApp: Boolean = false)
 
 object SetlistStore {
     private const val PREFS = "drumclick"
@@ -80,12 +80,13 @@ object SettingsStore {
             fontScale = p.getFloat("font", 1f),
             volume = p.getFloat("volume", 0.8f),
             click = p.getInt("click", 0),
-            lang = p.getInt("lang", -1)
+            lang = p.getInt("lang", -1),
+            ytApp = p.getBoolean("ytApp", false)
         )
     }
 
     fun save(ctx: Context, s: Settings) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putFloat("font", s.fontScale).putFloat("volume", s.volume).putInt("click", s.click).putInt("lang", s.lang).apply()
+            .putFloat("font", s.fontScale).putFloat("volume", s.volume).putInt("click", s.click).putInt("lang", s.lang).putBoolean("ytApp", s.ytApp).apply()
     }
 }

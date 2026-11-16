@@ -94,15 +94,23 @@ fun DrumClickApp(engine: Metronome, beatState: MutableIntState) {
     }
 }
 
-private fun openVideo(ctx: Context, s: Song, errorMsg: String) {
+private fun openVideo(ctx: Context, s: Song, errorMsg: String, inBrowser: Boolean) {
     val url = s.url.ifBlank { "https://www.youtube.com/results?search_query=" + Uri.encode(s.name) }
-    try {
-        ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-    } catch (e: Exception) {
-        val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        cm.setPrimaryClip(ClipData.newPlainText("YouTube", url))
-        Toast.makeText(ctx, errorMsg, Toast.LENGTH_LONG).show()
+    val uri = Uri.parse(url)
+    val viaBrowser = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_BROWSER)
+        .setData(uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    val viaView = Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    val order = if (inBrowser) listOf(viaBrowser, viaView) else listOf(viaView)
+    for (i in order) {
+        try {
+            ctx.startActivity(i)
+            return
+        } catch (e: Exception) {
+        }
     }
+    val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    cm.setPrimaryClip(ClipData.newPlainText("YouTube", url))
+    Toast.makeText(ctx, errorMsg, Toast.LENGTH_LONG).show()
 }
 
 @Composable
@@ -275,6 +283,19 @@ private fun MainScreen(
                                     )
                                 }
                             }
+                            Text(S.openWith, color = Yellow, fontWeight = FontWeight.SemiBold)
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                FilterChip(
+                                    selected = !settings.ytApp,
+                                    onClick = { onSettings(settings.copy(ytApp = false)) },
+                                    label = { Text("Browser") }
+                                )
+                                FilterChip(
+                                    selected = settings.ytApp,
+                                    onClick = { onSettings(settings.copy(ytApp = true)) },
+                                    label = { Text("YouTube") }
+                                )
+                            }
                             Text(S.language, color = Yellow, fontWeight = FontWeight.SemiBold)
                             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 FilterChip(
@@ -340,7 +361,7 @@ private fun MainScreen(
                                 color = stripes[i % stripes.size]
                             )
                         }
-                        Act("▶", Red) { openVideo(ctx, s, S.noBrowser) }
+                        Act("▶", Red) { openVideo(ctx, s, S.noBrowser, !settings.ytApp) }
                         Act("✎") { editIndex = i }
                         Act("▲") {
                             if (i > 0) {
